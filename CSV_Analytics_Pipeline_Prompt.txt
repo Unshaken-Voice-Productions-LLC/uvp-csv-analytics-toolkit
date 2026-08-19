@@ -1,0 +1,59 @@
+Build a production-style CSV analytics pipeline with structured validation, automated insight generation, and reliability checks.
+
+The system should include:
+
+1. File Ingestion Layer
+  - Accept CSV upload
+  - Validate file type and size
+  - Detect encoding issues
+  - Handle malformed rows gracefully
+  - Provide clear error messages
+
+2. Schema & Data Validation
+  - Infer schema (numeric, categorical, date)
+  - Flag missing or inconsistent values
+  - Detect duplicate records
+  - Identify outliers using statistical thresholds
+  - Generate a data quality report
+
+3. Data Cleaning Layer
+  - Handle missing values using configurable strategies
+  - Normalize categorical variables
+  - Standardize numeric formats
+  - Log all transformations
+
+4. Analysis Engine
+  - Generate summary statistics
+  - Compute correlations
+  - Segment data by key dimensions
+  - Detect trends and anomalies
+  - Support basic predictive modeling (optional regression or classification)
+
+5. Visualization Layer
+  - Auto-generate relevant charts based on data type
+  - Allow filtering and slicing
+  - Ensure visual clarity and labeling
+  - Handle edge cases (small datasets, skewed distributions)
+
+6. Insight Generation Layer
+  - Produce a structured executive summary
+  - Highlight key drivers
+  - Flag risks or unusual patterns
+  - Provide recommended next actions
+
+7. Architecture Requirements
+  - Modularize ingestion, cleaning, analysis, and reporting layers
+  - Separate logic from UI
+  - Include logging and basic monitoring
+  - Include test cases for:
+    • Schema detection
+    • Missing value handling
+    • Outlier detection
+
+8. Reliability & Edge Cases
+  - Handle extremely large files (simulate limits)
+  - Handle empty datasets
+  - Handle single-column datasets
+  - Prevent crash on invalid inputs
+
+Explain architectural decisions and how this system could scale to support enterprise-level analytics workflows.
