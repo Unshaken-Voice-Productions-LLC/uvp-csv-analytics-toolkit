@@ -28,7 +28,7 @@ DATE_FORMATS = (
     "%B %d %Y",
 )
 
-NUMERIC_CLEAN_RE = re.compile(r"[^0-9eE\.\-\+\(\),%]")
+NUMERIC_RE = re.compile(r"[+-]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
 
 
 def is_missing(value: Any) -> bool:
@@ -58,9 +58,11 @@ def parse_number(value: Any) -> float | None:
     if is_missing(value):
         return None
     if isinstance(value, (int, float)) and not isinstance(value, bool):
-        if math.isnan(value):
+        try:
+            number = float(value)
+        except OverflowError:
             return None
-        return float(value)
+        return number if math.isfinite(number) else None
     text = str(value).strip()
     if not text:
         return None
@@ -71,17 +73,18 @@ def parse_number(value: Any) -> float | None:
     percent = text.endswith("%")
     if percent:
         text = text[:-1]
-    cleaned = NUMERIC_CLEAN_RE.sub("", text)
-    cleaned = cleaned.replace(",", "")
-    if cleaned in {"", ".", "+", "-", "+.", "-."}:
+    # Accept explicit currency notation; never strip letters from identifiers.
+    text = text.lstrip("$£€¥").strip()
+    if not NUMERIC_RE.fullmatch(text) or (negative and text.startswith(("+", "-"))):
         return None
+    cleaned = text.replace(",", "")
     try:
         number = float(cleaned)
         if negative:
             number = -number
         if percent:
             number /= 100.0
-        return number
+        return number if math.isfinite(number) else None
     except ValueError:
         return None
 
@@ -308,12 +311,26 @@ def apply_filters(rows: Sequence[dict[str, Any]], filters: Sequence[FilterSpec])
     if not filters:
         return list(rows)
 
+    supported = {"equals", "not_equals", "contains", "greater_than", "greater_equal", "less_than", "less_equal", "between", "in"}
+    for spec in filters:
+        if spec.operation not in supported:
+            raise ValueError(f"Unsupported filter operation: {spec.operation}")
+
+    def equal(left: Any, right: Any) -> bool:
+        if isinstance(left, bool):
+            return parse_boolean(right) is left
+        if isinstance(left, (int, float)):
+            return parse_number(right) == left
+        if isinstance(left, (date, datetime)):
+            return parse_date(right) == parse_date(left)
+        return left == right
+
     def matches(row: dict[str, Any], spec: FilterSpec) -> bool:
         value = row.get(spec.column)
         if spec.operation == "equals":
-            return value == spec.value
+            return equal(value, spec.value)
         if spec.operation == "not_equals":
-            return value != spec.value
+            return not equal(value, spec.value)
         if spec.operation == "contains":
             return spec.value is not None and str(spec.value).lower() in str(value).lower()
         if spec.operation == "greater_than":
@@ -339,8 +356,8 @@ def apply_filters(rows: Sequence[dict[str, Any]], filters: Sequence[FilterSpec])
             return left is not None and low is not None and high is not None and low <= left <= high
         if spec.operation == "in":
             allowed = spec.value if isinstance(spec.value, (list, tuple, set)) else [spec.value]
-            return value in allowed
-        return True
+            return any(equal(value, item) for item in allowed)
+        return False
 
     filtered = list(rows)
     for spec in filters:

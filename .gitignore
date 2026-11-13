@@ -33,3 +33,9 @@ temp/
 *.mov
 *.avi
 *.psd
+
+# Generated local reports and packaging outputs
+outputs/
+build/
+dist/
+*.egg-info/

@@ -314,7 +314,8 @@ def build_html_report(result: PipelineResult) -> str:
     </section>
 
     <section>
-      <h2>Predictive Model</h2>
+      <h2>Exploratory Regression</h2>
+      <p class="note">Metrics describe the training data. They do not measure future predictive performance or establish causation.</p>
       {_render_table(["Metric / Property", "Value"], model_rows, "No predictive model was generated for this dataset.")}
     </section>
 

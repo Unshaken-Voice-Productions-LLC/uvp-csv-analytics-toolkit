@@ -50,6 +50,13 @@ class PipelineConfig:
     output_directory: Path | None = None
     log_level: str = "INFO"
 
+    def __post_init__(self) -> None:
+        for name in ("max_file_size_bytes", "max_rows", "sample_rows_for_inference"):
+            if getattr(self, name) <= 0:
+                raise ValueError(f"{name} must be positive")
+        if self.chart_limit < 0:
+            raise ValueError("chart_limit must be nonnegative")
+
 
 @dataclass(slots=True)
 class IngestionIssue:

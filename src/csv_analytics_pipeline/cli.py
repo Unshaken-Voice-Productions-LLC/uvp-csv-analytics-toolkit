@@ -56,16 +56,19 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     defaults = PipelineConfig()
 
-    config = PipelineConfig(
-        output_directory=args.output_dir,
-        max_file_size_bytes=(args.max_file_size_mb * 1024 * 1024) if args.max_file_size_mb else defaults.max_file_size_bytes,
-        max_rows=args.max_rows or defaults.max_rows,
-        sample_rows_for_inference=args.sample_rows or defaults.sample_rows_for_inference,
-        target_column=args.target_column,
-        feature_columns=args.feature_column,
-        slice_filters=args.filters or [],
-        chart_limit=args.chart_limit or defaults.chart_limit,
-    )
+    try:
+        config = PipelineConfig(
+            output_directory=args.output_dir,
+            max_file_size_bytes=(args.max_file_size_mb * 1024 * 1024) if args.max_file_size_mb is not None else defaults.max_file_size_bytes,
+            max_rows=args.max_rows if args.max_rows is not None else defaults.max_rows,
+            sample_rows_for_inference=args.sample_rows if args.sample_rows is not None else defaults.sample_rows_for_inference,
+            target_column=args.target_column,
+            feature_columns=args.feature_column,
+            slice_filters=args.filters or [],
+            chart_limit=args.chart_limit if args.chart_limit is not None else defaults.chart_limit,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
 
     result = run_pipeline(args.csv_path, config=config)
 
