@@ -22,28 +22,30 @@ class EncodingDetectionResult:
     warning: str | None = None
 
 
-def _read_source_bytes(source: str | Path | bytes | BinaryIO | TextIOBase, source_name: str | None) -> tuple[bytes, str]:
+def _read_source_bytes(source: str | Path | bytes | BinaryIO | TextIOBase, source_name: str | None, limit: int) -> tuple[bytes, str]:
     if isinstance(source, bytes):
         return source, source_name or "uploaded.csv"
     if isinstance(source, Path):
         if not source.exists():
             raise CSVIngestionError(f"File not found: {source}")
-        return source.read_bytes(), source.name
+        with source.open("rb") as handle:
+            return handle.read(limit + 1), source.name
     if isinstance(source, str):
         path = Path(source)
         if path.exists():
-            return path.read_bytes(), path.name
+            with path.open("rb") as handle:
+                return handle.read(limit + 1), path.name
         raise CSVIngestionError(
             "CSV source must be a file path or bytes payload. "
             "If you are passing raw text, encode it to bytes first."
         )
     if isinstance(source, TextIOBase):
-        payload = source.read()
+        payload = source.read(limit + 1)
         if isinstance(payload, str):
             return payload.encode("utf-8"), source_name or getattr(source, "name", "uploaded.csv")
         raise CSVIngestionError("Unexpected text stream payload.")
     if hasattr(source, "read"):
-        payload = source.read()
+        payload = source.read(limit + 1)
         if isinstance(payload, str):
             return payload.encode("utf-8"), source_name or getattr(source, "name", "uploaded.csv")
         if isinstance(payload, bytes):
@@ -92,7 +94,7 @@ def ingest_csv(
     config: PipelineConfig,
     source_name: str | None = None,
 ) -> tuple[IngestedDataset, list[IngestionIssue]]:
-    raw_bytes, derived_name = _read_source_bytes(source, source_name)
+    raw_bytes, derived_name = _read_source_bytes(source, source_name, config.max_file_size_bytes)
     effective_name = source_name or derived_name
     _validate_extension(effective_name)
 
@@ -120,6 +122,8 @@ def ingest_csv(
     headers = [header.strip() for header in headers]
     if not any(headers):
         raise CSVIngestionError(f"CSV file '{effective_name}' does not contain a usable header row.")
+    if any(not header for header in headers) or len(set(headers)) != len(headers):
+        raise CSVIngestionError("CSV headers must be nonblank and unique after trimming whitespace.")
 
     rows: list[dict[str, Any]] = []
     malformed_rows: list[MalformedRow] = []

@@ -122,6 +122,15 @@ def run_pipeline(
 
         quality = _record_stage(result, "validation", lambda: build_quality_report(dataset, config))
         result.quality = quality
+        columns = set(dataset.headers)
+        for spec in config.slice_filters:
+            if spec.column not in columns:
+                raise ValueError(f"Unknown filter column: {spec.column}")
+        if config.target_column and config.target_column not in columns:
+            raise ValueError(f"Unknown target column: {config.target_column}")
+        for column in config.feature_columns or []:
+            if column not in columns:
+                raise ValueError(f"Unknown feature column: {column}")
 
         cleaned_rows, cleaning_report = _record_stage(
             result,
@@ -129,6 +138,7 @@ def run_pipeline(
             lambda: clean_dataset(dataset.rows, quality.profiles, config),
         )
         result.cleaning = cleaning_report
+        result.cleaned_rows = cleaned_rows
 
         filtered_rows = apply_filters(cleaned_rows, config.slice_filters)
         if config.slice_filters:
@@ -149,13 +159,18 @@ def run_pipeline(
         insights = _record_stage(result, "insights", lambda: build_insights(quality, analysis, config))
         result.insights = insights
 
-        result.output_paths = _record_stage(result, "reporting", lambda: write_report_bundle(result, output_dir))
+        result.warnings.append("Schema profiles summarize the inference sample; analysis uses cleaned, filtered rows. Missing values may be imputed. Reports and logs may contain source data; review before sharing.")
+        if analysis.model:
+            result.warnings.append("Regression metrics are measured on the training data, not on a held-out validation set. Correlation does not establish causation.")
         result.success = True
+        result.output_paths = _record_stage(result, "reporting", lambda: write_report_bundle(result, output_dir))
         logger.info("Pipeline completed successfully. Output written to %s", output_dir)
     except CSVIngestionError as exc:
+        result.success = False
         result.errors.append(str(exc))
         logger.error("Ingestion failed: %s", exc)
     except Exception as exc:
+        result.success = False
         result.errors.append(str(exc))
         logger.exception("Pipeline failed")
     finally:
