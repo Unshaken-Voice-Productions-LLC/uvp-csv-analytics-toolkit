@@ -9,4 +9,4 @@
 - Add installed csv-analytics command, synthetic dataset, regression tests and CI.
 - Document imputation, sample-based profiles, local report privacy and in-sample regression limits.
 
-These changes are proposed for review. No tagged release or open-source license grant has been made.
+MIT licensing was approved by Steven on November 13, 2026 and is included in this review branch. The upgrade is awaiting merge approval; no tagged release has been made.

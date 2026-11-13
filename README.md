@@ -57,4 +57,4 @@ python -m unittest discover -s tests -v
 python -m compileall -q src tests
 ```
 
-Tests and a pinned secret-scanning workflow run on pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and [LICENSE](LICENSE). The source is public; an open-source license has not yet been granted.
+Tests and a pinned secret-scanning workflow run on pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and [LICENSE](LICENSE). This project is licensed under the MIT License.
